@@ -1,0 +1,1248 @@
+== backend/package.json
+{
+  “name”: “bigmoney-con-pagos”,
+  “version”: “2.1.0”,
+  “scripts”: {
+    “dev”: “next dev”,
+    “build”: “next build”,
+    “start”: “next start”,
+    “prisma:dev”: “prisma migrate dev –name init”
+  },
+  “dependencies”: {
+    “next”: “14.2.5”,
+    “react”: “18.3.1”,
+    “react-dom”: “18.3.1”,
+    “@prisma/client”: “5.17.0”,
+    “bcryptjs”: “2.4.3”,
+    “next-auth”: “5.0.0-beta.20”
+  },
+  “devDependencies”: {
+    “prisma”: “5.17.0”,
+    “typescript”: “5.4.5”
+  }
+}
+== backend/prisma/schema.prisma
+Generator client {
+  Provider = “prisma-client-js”
+}
+Datasource db {
+  Provider = “sqlite”
+  url      = env(“DATABASE_URL”)
+}
+Model User {
+  Id        String   @id @default(cuid())
+  Email     String   @unique
+  Name      String?
+  Password  String
+  Balance   Float    @default(0)
+  createdAt DateTime @default(now())
+  withdrawals Withdrawal[]
+}
+Model Offer {
+  Id          String   @id @default(cuid())
+  Title       String
+  Description String
+  Reward      Float
+  createdAt   DateTime @default(now())
+}
+Model Survey {
+  Id          String   @id @default(cuid())
+  Title       String
+  Description String
+  Reward      Float
+  createdAt   DateTime @default(now())
+}
+Model Withdrawal {
+  Id        String   @id @default(cuid())
+  userId    String
+  method    String
+  account   String
+  amount    Float
+  status    String   @default(“pendiente”)
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [userId], references: [id])
+}
+== backend/src/app/page.tsx
+Export default function Home() {
+  Return (
+    <main>
+      <h1>Bienvenido a Bigmoney</h1>
+      <p>Gana dinero extra completando ofertas y encuestas.</p>
+      <a href=”/auth/register”>Regístrate</a> | <a href=”/auth/login”>Inicia sesión</a>
+    </main>
+  );
+}
+== backend/src/app/auth/register/page.tsx
+Export default function Register() {
+  Return (
+    <main>
+      <h1>Registro</h1>
+      <form method=”post” action=”/api/register”>
+        <input type=”text” name=”name” placeholder=”Nombre” />
+        <input type=”email” name=”email” placeholder=”Correo” required />
+        <input type=”password” name=”password” placeholder=”Contraseña” required />
+        <button type=”submit”>Crear cuenta</button>
+      </form>
+    </main>
+  );
+}
+== backend/src/app/auth/login/page.tsx
+Export default function Login() {
+  Return (
+    <main>
+      <h1>Iniciar Sesión</h1>
+      <form method=”post” action=”/api/login”>
+        <input type=”email” name=”email” placeholder=”Correo” required />
+        <input type=”password” name=”password” placeholder=”Contraseña” required />
+        <button type=”submit”>Entrar</button>
+      </form>
+    </main>
+  );
+}
+== backend/src/app/dashboard/page.tsx
+Export default function Dashboard() {
+  Return (
+    <main>
+      <h1>Tu Panel</h1>
+      <p>Saldo disponible: $10.00</p>
+      <h2>Solicitar Retiro</h2>
+      <form method=”post” action=”/api/withdraw”>
+        <select name=”method”>
+          <option value=”paypal”>PayPal</option>
+          <option value=”stripe”>Stripe</option>
+        </select>
+        <input type=”text” name=”account” placeholder=”Correo de cuenta” required />
+        <input type=”number” name=”amount” placeholder=”Monto a retirar” required />
+        <button type=”submit”>Solicitar</button>
+      </form>
+      <h2>Historial de Retiros</h2>
+      <ul>
+        <li>$5.00 – PayPal – pendiente</li>
+      </ul>
+    </main>
+  );
+}
+== backend/src/app/admin/page.tsx
+Export default function Admin() {
+  Return (
+    <main>
+      <h1>Panel de Administración</h1>
+      <h2>Retiros pendientes</h2>
+      <ul>
+        <li>
+          Usuario:  - $5.00 – PayPal 
+          <button>Marcar como pagado</button>
+        </li>
+      </ul>
+    </main>
+  );
+}
+== backend/src/app/offers/page.tsx
+Export default function Offers() {
+  Return (
+    <main>
+      <h1>Muro de Ofertas</h1>
+      <ul>
+        <li>Descarga una app y gana $1</li>
+        <li>Regístrate en un servicio y gana $2</li>
+      </ul>
+    </main>
+  );
+}
+== backend/src/app/surveys/page.tsx
+Export default function Surveys() {
+  Return (
+    <main>
+      <h1>Muro de Encuestas</h1>
+      <ul>
+        <li>Encuesta rápida: gana $0.50</li>
+        <li>Encuesta avanzada: gana $1.00</li>
+      </ul>
+    </main>
+  );
+}
+== android/app/src/main/AndroidManifest.xml
+<manifest xmlns:android=
+    Package=”com.bigmoney.app”>
+    <uses-permission android:name=”android.permission.INTERNET” />
+    <application
+        Android:allowBackup=”true”
+        Android:label=”Bigmoney”
+        Android:theme=”@style/Theme.AppCompat.Light.NoActionBar”>
+        <activity android:name=”.MainActivity”
+            Android:exported=”true”>
+            <intent-filter>
+                <action android:name=”android.intent.action.MAIN” />
+                <category android:name=”android.intent.category.LAUNCHER” />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+== android/app/src/main/java/com/bigmoney/app/MainActivity.java
+Package com.bigmoney.app;
+Import android.os.Bundle;
+Import android.webkit.WebSettings;
+Import android.webkit.WebView;
+Import android.webkit.WebViewClient;
+Import androidx.appcompat.app.AppCompatActivity;
+Public class MainActivity extends AppCompatActivity {
+    Private WebView webView;
+    @Override
+    Protected void onCreate(Bundle savedInstanceState) {
+        Super.onCreate(savedInstanceState);
+        webView = new WebView(this);
+        setContentView(webView);
+        WebSettings webSettings = webView.getSettings();
+        webSettings.setJavaScriptEnabled(true);
+        webView.setWebViewClient(new WebViewClient());
+        webView.loadUrl(); // URL local para pruebas
+    }
+    @Override
+    Public void onBackPressed() {
+        If (webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            Super.onBackPressed();
+        }
+    }
+}
+== backend/package.json
+{
+  “name”: “bigmoney-con-pagos”,
+  “version”: “2.1.0”,
+  “scripts”: {
+    “dev”: “next dev”,
+    “build”: “next build”,
+    “start”: “next start”,
+    “prisma:dev”: “prisma migrate dev –name init”
+  },
+  “dependencies”: {
+    “next”: “14.2.5”,
+    “react”: “18.3.1”,
+    “react-dom”: “18.3.1”,
+    “@prisma/client”: “5.17.0”,
+    “bcryptjs”: “2.4.3”,
+    “next-auth”: “5.0.0-beta.20”
+  },
+  “devDependencies”: {
+    “prisma”: “5.17.0”,
+    “typescript”: “5.4.5”
+  }
+}
+== backend/prisma/schema.prisma
+Generator client {
+  Provider = “prisma-client-js”
+}
+Datasource db {
+  Provider = “sqlite”
+  url      = env(“DATABASE_URL”)
+}
+Model User {
+  Id        String   @id @default(cuid())
+  Email     String   @unique
+  Name      String?
+  Password  String
+  Balance   Float    @default(0)
+  createdAt DateTime @default(now())
+  withdrawals Withdrawal[]
+}
+Model Offer {
+  Id          String   @id @default(cuid())
+  Title       String
+  Description String
+  Reward      Float
+  createdAt   DateTime @default(now())
+}
+Model Survey {
+  Id          String   @id @default(cuid())
+  Title       String
+  Description String
+  Reward      Float
+  createdAt   DateTime @default(now())
+}
+Model Withdrawal {
+  Id        String   @id @default(cuid())
+  userId    String
+  method    String
+  account   String
+  amount    Float
+  status    String   @default(“pendiente”)
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [userId], references: [id])
+}
+== backend/src/app/page.tsx
+Export default function Home() {
+  Return (
+    <main>
+      <h1>Bienvenido a Bigmoney</h1>
+      <p>Gana dinero extra completando ofertas y encuestas.</p>
+      <a href=”/auth/register”>Regístrate</a> | <a href=”/auth/login”>Inicia sesión</a>
+    </main>
+  );
+}
+== backend/src/app/auth/register/page.tsx
+Export default function Register() {
+  Return (
+    <main>
+      <h1>Registro</h1>
+      <form method=”post” action=”/api/register”>
+        <input type=”text” name=”name” placeholder=”Nombre” />
+        <input type=”email” name=”email” placeholder=”Correo” required />
+        <input type=”password” name=”password” placeholder=”Contraseña” required />
+        <button type=”submit”>Crear cuenta</button>
+      </form>
+    </main>
+  );
+}
+== backend/src/app/auth/login/page.tsx
+Export default function Login() {
+  Return (
+    <main>
+      <h1>Iniciar Sesión</h1>
+      <form method=”post” action=”/api/login”>
+        <input type=”email” name=”email” placeholder=”Correo” required />
+        <input type=”password” name=”password” placeholder=”Contraseña” required />
+        <button type=”submit”>Entrar</button>
+      </form>
+    </main>
+  );
+}
+== backend/src/app/dashboard/page.tsx
+Export default function Dashboard() {
+  Return (
+    <main>
+      <h1>Tu Panel</h1>
+      <p>Saldo disponible: $10.00</p>
+      <h2>Solicitar Retiro</h2>
+      <form method=”post” action=”/api/withdraw”>
+        <select name=”method”>
+          <option value=”paypal”>PayPal</option>
+          <option value=”stripe”>Stripe</option>
+        </select>
+        <input type=”text” name=”account” placeholder=”Correo de cuenta” required />
+        <input type=”number” name=”amount” placeholder=”Monto a retirar” required />
+        <button type=”submit”>Solicitar</button>
+      </form>
+      <h2>Historial de Retiros</h2>
+      <ul>
+        <li>$5.00 – PayPal – pendiente</li>
+      </ul>
+    </main>
+  );
+}
+== backend/src/app/admin/page.tsx
+Export default function Admin() {
+  Return (
+    <main>
+      <h1>Panel de Administración</h1>
+      <h2>Retiros pendientes</h2>
+      <ul>
+        <li>
+          Usuario:  - $5.00 – PayPal 
+          <button>Marcar como pagado</button>
+        </li>
+      </ul>
+    </main>
+  );
+}
+== backend/src/app/offers/page.tsx
+Export default function Offers() {
+  Return (
+    <main>
+      <h1>Muro de Ofertas</h1>
+      <ul>
+        <li>Descarga una app y gana $1</li>
+        <li>Regístrate en un servicio y gana $2</li>
+      </ul>
+    </main>
+  );
+}
+== backend/src/app/surveys/page.tsx
+Export default function Surveys() {
+  Return (
+    <main>
+      <h1>Muro de Encuestas</h1>
+      <ul>
+        <li>Encuesta rápida: gana $0.50</li>
+        <li>Encuesta avanzada: gana $1.00</li>
+      </ul>
+    </main>
+  );
+}
+== android/app/src/main/AndroidManifest.xml
+<manifest xmlns:android=
+    Package=”com.bigmoney.app”>
+    <uses-permission android:name=”android.permission.INTERNET” />
+    <application
+        Android:allowBackup=”true”
+        Android:label=”Bigmoney”
+        Android:theme=”@style/Theme.AppCompat.Light.NoActionBar”>
+        <activity android:name=”.MainActivity”
+            Android:exported=”true”>
+            <intent-filter>
+                <action android:name=”android.intent.action.MAIN” />
+                <category android:name=”android.intent.category.LAUNCHER” />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+== android/app/src/main/java/com/bigmoney/app/MainActivity.java
+Package com.bigmoney.app;
+Import android.os.Bundle;
+Import android.webkit.WebSettings;
+Import android.webkit.WebView;
+Import android.webkit.WebViewClient;
+Import androidx.appcompat.app.AppCompatActivity;
+Public class MainActivity extends AppCompatActivity {
+    Private WebView webView;
+    @Override
+    Protected void onCreate(Bundle savedInstanceState) {
+        Super.onCreate(savedInstanceState);
+        webView = new WebView(this);
+        setContentView(webView);
+        WebSettings webSettings = webView.getSettings();
+        webSettings.setJavaScriptEnabled(true);
+        webView.setWebViewClient(new WebViewClient());
+        webView.loadUrl(); // URL local para pruebas
+    }
+    @Override
+    Public void onBackPressed() {
+        If (webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            Super.onBackPressed();
+        }
+    }
+}
+== backend/package.json
+{
+  “name”: “bigmoney-con-pagos”,
+  “version”: “2.1.0”,
+  “scripts”: {
+    “dev”: “next dev”,
+    “build”: “next build”,
+    “start”: “next start”,
+    “prisma:dev”: “prisma migrate dev –name init”
+  },
+  “dependencies”: {
+    “next”: “14.2.5”,
+    “react”: “18.3.1”,
+    “react-dom”: “18.3.1”,
+    “@prisma/client”: “5.17.0”,
+    “bcryptjs”: “2.4.3”,
+    “next-auth”: “5.0.0-beta.20”
+  },
+  “devDependencies”: {
+    “prisma”: “5.17.0”,
+    “typescript”: “5.4.5”
+  }
+}
+== backend/prisma/schema.prisma
+Generator client {
+  Provider = “prisma-client-js”
+}
+Datasource db {
+  Provider = “sqlite”
+  url      = env(“DATABASE_URL”)
+}
+Model User {
+  Id        String   @id @default(cuid())
+  Email     String   @unique
+  Name      String?
+  Password  String
+  Balance   Float    @default(0)
+  createdAt DateTime @default(now())
+  withdrawals Withdrawal[]
+}
+Model Offer {
+  Id          String   @id @default(cuid())
+  Title       String
+  Description String
+  Reward      Float
+  createdAt   DateTime @default(now())
+}
+Model Survey {
+  Id          String   @id @default(cuid())
+  Title       String
+  Description String
+  Reward      Float
+  createdAt   DateTime @default(now())
+}
+Model Withdrawal {
+  Id        String   @id @default(cuid())
+  userId    String
+  method    String
+  account   String
+  amount    Float
+  status    String   @default(“pendiente”)
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [userId], references: [id])
+}
+== backend/src/app/page.tsx
+Export default function Home() {
+  Return (
+    <main>
+      <h1>Bienvenido a Bigmoney</h1>
+      <p>Gana dinero extra completando ofertas y encuestas.</p>
+      <a href=”/auth/register”>Regístrate</a> | <a href=”/auth/login”>Inicia sesión</a>
+    </main>
+  );
+}
+== backend/src/app/auth/register/page.tsx
+Export default function Register() {
+  Return (
+    <main>
+      <h1>Registro</h1>
+      <form method=”post” action=”/api/register”>
+        <input type=”text” name=”name” placeholder=”Nombre” />
+        <input type=”email” name=”email” placeholder=”Correo” required />
+        <input type=”password” name=”password” placeholder=”Contraseña” required />
+        <button type=”submit”>Crear cuenta</button>
+      </form>
+    </main>
+  );
+}
+== backend/src/app/auth/login/page.tsx
+Export default function Login() {
+  Return (
+    <main>
+      <h1>Iniciar Sesión</h1>
+      <form method=”post” action=”/api/login”>
+        <input type=”email” name=”email” placeholder=”Correo” required />
+        <input type=”password” name=”password” placeholder=”Contraseña” required />
+        <button type=”submit”>Entrar</button>
+      </form>
+    </main>
+  );
+}
+== backend/src/app/dashboard/page.tsx
+Export default function Dashboard() {
+  Return (
+    <main>
+      <h1>Tu Panel</h1>
+      <p>Saldo disponible: $10.00</p>
+      <h2>Solicitar Retiro</h2>
+      <form method=”post” action=”/api/withdraw”>
+        <select name=”method”>
+          <option value=”paypal”>PayPal</option>
+          <option value=”stripe”>Stripe</option>
+        </select>
+        <input type=”text” name=”account” placeholder=”Correo de cuenta” required />
+        <input type=”number” name=”amount” placeholder=”Monto a retirar” required />
+        <button type=”submit”>Solicitar</button>
+      </form>
+      <h2>Historial de Retiros</h2>
+      <ul>
+        <li>$5.00 – PayPal – pendiente</li>
+      </ul>
+    </main>
+  );
+}
+== backend/src/app/admin/page.tsx
+Export default function Admin() {
+  Return (
+    <main>
+      <h1>Panel de Administración</h1>
+      <h2>Retiros pendientes</h2>
+      <ul>
+        <li>
+          Usuario:  - $5.00 – PayPal 
+          <button>Marcar como pagado</button>
+        </li>
+      </ul>
+    </main>
+  );
+}
+== backend/src/app/offers/page.tsx
+Export default function Offers() {
+  Return (
+    <main>
+      <h1>Muro de Ofertas</h1>
+      <ul>
+        <li>Descarga una app y gana $1</li>
+        <li>Regístrate en un servicio y gana $2</li>
+      </ul>
+    </main>
+  );
+}
+== backend/src/app/surveys/page.tsx
+Export default function Surveys() {
+  Return (
+    <main>
+      <h1>Muro de Encuestas</h1>
+      <ul>
+        <li>Encuesta rápida: gana $0.50</li>
+        <li>Encuesta avanzada: gana $1.00</li>
+      </ul>
+    </main>
+  );
+}
+== android/app/src/main/AndroidManifest.xml
+<manifest xmlns:android=
+    Package=”com.bigmoney.app”>
+    <uses-permission android:name=”android.permission.INTERNET” />
+    <application
+        Android:allowBackup=”true”
+        Android:label=”Bigmoney”
+        Android:theme=”@style/Theme.AppCompat.Light.NoActionBar”>
+        <activity android:name=”.MainActivity”
+            Android:exported=”true”>
+            <intent-filter>
+                <action android:name=”android.intent.action.MAIN” />
+                <category android:name=”android.intent.category.LAUNCHER” />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+== android/app/src/main/java/com/bigmoney/app/MainActivity.java
+Package com.bigmoney.app;
+Import android.os.Bundle;
+Import android.webkit.WebSettings;
+Import android.webkit.WebView;
+Import android.webkit.WebViewClient;
+Import androidx.appcompat.app.AppCompatActivity;
+Public class MainActivity extends AppCompatActivity {
+    Private WebView webView;
+    @Override
+    Protected void onCreate(Bundle savedInstanceState) {
+        Super.onCreate(savedInstanceState);
+        webView = new WebView(this);
+        setContentView(webView);
+        WebSettings webSettings = webView.getSettings();
+        webSettings.setJavaScriptEnabled(true);
+        webView.setWebViewClient(new WebViewClient());
+        webView.loadUrl(); // URL local para pruebas
+    }
+    @Override
+    Public void onBackPressed() {
+        If (webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            Super.onBackPressed();
+        }
+    }
+}
+== backend/package.json
+{
+  “name”: “bigmoney-con-pagos”,
+  “version”: “2.1.0”,
+  “scripts”: {
+    “dev”: “next dev”,
+    “build”: “next build”,
+    “start”: “next start”,
+    “prisma:dev”: “prisma migrate dev –name init”
+  },
+  “dependencies”: {
+    “next”: “14.2.5”,
+    “react”: “18.3.1”,
+    “react-dom”: “18.3.1”,
+    “@prisma/client”: “5.17.0”,
+    “bcryptjs”: “2.4.3”,
+    “next-auth”: “5.0.0-beta.20”
+  },
+  “devDependencies”: {
+    “prisma”: “5.17.0”,
+    “typescript”: “5.4.5”
+  }
+}
+== backend/prisma/schema.prisma
+Generator client {
+  Provider = “prisma-client-js”
+}
+Datasource db {
+  Provider = “sqlite”
+  url      = env(“DATABASE_URL”)
+}
+Model User {
+  Id        String   @id @default(cuid())
+  Email     String   @unique
+  Name      String?
+  Password  String
+  Balance   Float    @default(0)
+  createdAt DateTime @default(now())
+  withdrawals Withdrawal[]
+}
+Model Offer {
+  Id          String   @id @default(cuid())
+  Title       String
+  Description String
+  Reward      Float
+  createdAt   DateTime @default(now())
+}
+Model Survey {
+  Id          String   @id @default(cuid())
+  Title       String
+  Description String
+  Reward      Float
+  createdAt   DateTime @default(now())
+}
+Model Withdrawal {
+  Id        String   @id @default(cuid())
+  userId    String
+  method    String
+  account   String
+  amount    Float
+  status    String   @default(“pendiente”)
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [userId], references: [id])
+}
+== backend/src/app/page.tsx
+Export default function Home() {
+  Return (
+    <main>
+      <h1>Bienvenido a Bigmoney</h1>
+      <p>Gana dinero extra completando ofertas y encuestas.</p>
+      <a href=”/auth/register”>Regístrate</a> | <a href=”/auth/login”>Inicia sesión</a>
+    </main>
+  );
+}
+== backend/src/app/auth/register/page.tsx
+Export default function Register() {
+  Return (
+    <main>
+      <h1>Registro</h1>
+      <form method=”post” action=”/api/register”>
+        <input type=”text” name=”name” placeholder=”Nombre” />
+        <input type=”email” name=”email” placeholder=”Correo” required />
+        <input type=”password” name=”password” placeholder=”Contraseña” required />
+        <button type=”submit”>Crear cuenta</button>
+      </form>
+    </main>
+  );
+}
+== backend/src/app/auth/login/page.tsx
+Export default function Login() {
+  Return (
+    <main>
+      <h1>Iniciar Sesión</h1>
+      <form method=”post” action=”/api/login”>
+        <input type=”email” name=”email” placeholder=”Correo” required />
+        <input type=”password” name=”password” placeholder=”Contraseña” required />
+        <button type=”submit”>Entrar</button>
+      </form>
+    </main>
+  );
+}
+== backend/src/app/dashboard/page.tsx
+Export default function Dashboard() {
+  Return (
+    <main>
+      <h1>Tu Panel</h1>
+      <p>Saldo disponible: $10.00</p>
+      <h2>Solicitar Retiro</h2>
+      <form method=”post” action=”/api/withdraw”>
+        <select name=”method”>
+          <option value=”paypal”>PayPal</option>
+          <option value=”stripe”>Stripe</option>
+        </select>
+        <input type=”text” name=”account” placeholder=”Correo de cuenta” required />
+        <input type=”number” name=”amount” placeholder=”Monto a retirar” required />
+        <button type=”submit”>Solicitar</button>
+      </form>
+      <h2>Historial de Retiros</h2>
+      <ul>
+        <li>$5.00 – PayPal – pendiente</li>
+      </ul>
+    </main>
+  );
+}
+== backend/src/app/admin/page.tsx
+Export default function Admin() {
+  Return (
+    <main>
+      <h1>Panel de Administración</h1>
+      <h2>Retiros pendientes</h2>
+      <ul>
+        <li>
+          Usuario:  - $5.00 – PayPal 
+          <button>Marcar como pagado</button>
+        </li>
+      </ul>
+    </main>
+  );
+}
+== backend/src/app/offers/page.tsx
+Export default function Offers() {
+  Return (
+    <main>
+      <h1>Muro de Ofertas</h1>
+      <ul>
+        <li>Descarga una app y gana $1</li>
+        <li>Regístrate en un servicio y gana $2</li>
+      </ul>
+    </main>
+  );
+}
+== backend/src/app/surveys/page.tsx
+Export default function Surveys() {
+  Return (
+    <main>
+      <h1>Muro de Encuestas</h1>
+      <ul>
+        <li>Encuesta rápida: gana $0.50</li>
+        <li>Encuesta avanzada: gana $1.00</li>
+      </ul>
+    </main>
+  );
+}
+== android/app/src/main/AndroidManifest.xml
+<manifest xmlns:android=
+    Package=”com.bigmoney.app”>
+    <uses-permission android:name=”android.permission.INTERNET” />
+    <application
+        Android:allowBackup=”true”
+        Android:label=”Bigmoney”
+        Android:theme=”@style/Theme.AppCompat.Light.NoActionBar”>
+        <activity android:name=”.MainActivity”
+            Android:exported=”true”>
+            <intent-filter>
+                <action android:name=”android.intent.action.MAIN” />
+                <category android:name=”android.intent.category.LAUNCHER” />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+== android/app/src/main/java/com/bigmoney/app/MainActivity.java
+Package com.bigmoney.app;
+Import android.os.Bundle;
+Import android.webkit.WebSettings;
+Import android.webkit.WebView;
+Import android.webkit.WebViewClient;
+Import androidx.appcompat.app.AppCompatActivity;
+Public class MainActivity extends AppCompatActivity {
+    Private WebView webView;
+    @Override
+    Protected void onCreate(Bundle savedInstanceState) {
+        Super.onCreate(savedInstanceState);
+        webView = new WebView(this);
+        setContentView(webView);
+        WebSettings webSettings = webView.getSettings();
+        webSettings.setJavaScriptEnabled(true);
+        webView.setWebViewClient(new WebViewClient());
+        webView.loadUrl(); // URL local para pruebas
+    }
+    @Override
+    Public void onBackPressed() {
+        If (webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            Super.onBackPressed();
+        }
+    }
+}
+== backend/package.json
+{
+  “name”: “bigmoney-con-pagos”,
+  “version”: “2.1.0”,
+  “scripts”: {
+    “dev”: “next dev”,
+    “build”: “next build”,
+    “start”: “next start”,
+    “prisma:dev”: “prisma migrate dev –name init”
+  },
+  “dependencies”: {
+    “next”: “14.2.5”,
+    “react”: “18.3.1”,
+    “react-dom”: “18.3.1”,
+    “@prisma/client”: “5.17.0”,
+    “bcryptjs”: “2.4.3”,
+    “next-auth”: “5.0.0-beta.20”
+  },
+  “devDependencies”: {
+    “prisma”: “5.17.0”,
+    “typescript”: “5.4.5”
+  }
+}
+== backend/prisma/schema.prisma
+Generator client {
+  Provider = “prisma-client-js”
+}
+Datasource db {
+  Provider = “sqlite”
+  url      = env(“DATABASE_URL”)
+}
+Model User {
+  Id        String   @id @default(cuid())
+  Email     String   @unique
+  Name      String?
+  Password  String
+  Balance   Float    @default(0)
+  createdAt DateTime @default(now())
+  withdrawals Withdrawal[]
+}
+Model Offer {
+  Id          String   @id @default(cuid())
+  Title       String
+  Description String
+  Reward      Float
+  createdAt   DateTime @default(now())
+}
+Model Survey {
+  Id          String   @id @default(cuid())
+  Title       String
+  Description String
+  Reward      Float
+  createdAt   DateTime @default(now())
+}
+Model Withdrawal {
+  Id        String   @id @default(cuid())
+  userId    String
+  method    String
+  account   String
+  amount    Float
+  status    String   @default(“pendiente”)
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [userId], references: [id])
+}
+== backend/src/app/page.tsx
+Export default function Home() {
+  Return (
+    <main>
+      <h1>Bienvenido a Bigmoney</h1>
+      <p>Gana dinero extra completando ofertas y encuestas.</p>
+      <a href=”/auth/register”>Regístrate</a> | <a href=”/auth/login”>Inicia sesión</a>
+    </main>
+  );
+}
+== backend/src/app/auth/register/page.tsx
+Export default function Register() {
+  Return (
+    <main>
+      <h1>Registro</h1>
+      <form method=”post” action=”/api/register”>
+        <input type=”text” name=”name” placeholder=”Nombre” />
+        <input type=”email” name=”email” placeholder=”Correo” required />
+        <input type=”password” name=”password” placeholder=”Contraseña” required />
+        <button type=”submit”>Crear cuenta</button>
+      </form>
+    </main>
+  );
+}
+== backend/src/app/auth/login/page.tsx
+Export default function Login() {
+  Return (
+    <main>
+      <h1>Iniciar Sesión</h1>
+      <form method=”post” action=”/api/login”>
+        <input type=”email” name=”email” placeholder=”Correo” required />
+        <input type=”password” name=”password” placeholder=”Contraseña” required />
+        <button type=”submit”>Entrar</button>
+      </form>
+    </main>
+  );
+}
+== backend/src/app/dashboard/page.tsx
+Export default function Dashboard() {
+  Return (
+    <main>
+      <h1>Tu Panel</h1>
+      <p>Saldo disponible: $10.00</p>
+      <h2>Solicitar Retiro</h2>
+      <form method=”post” action=”/api/withdraw”>
+        <select name=”method”>
+          <option value=”paypal”>PayPal</option>
+          <option value=”stripe”>Stripe</option>
+        </select>
+        <input type=”text” name=”account” placeholder=”Correo de cuenta” required />
+        <input type=”number” name=”amount” placeholder=”Monto a retirar” required />
+        <button type=”submit”>Solicitar</button>
+      </form>
+      <h2>Historial de Retiros</h2>
+      <ul>
+        <li>$5.00 – PayPal – pendiente</li>
+      </ul>
+    </main>
+  );
+}
+== backend/src/app/admin/page.tsx
+Export default function Admin() {
+  Return (
+    <main>
+      <h1>Panel de Administración</h1>
+      <h2>Retiros pendientes</h2>
+      <ul>
+        <li>
+          Usuario:  - $5.00 – PayPal 
+          <button>Marcar como pagado</button>
+        </li>
+      </ul>
+    </main>
+  );
+}
+== backend/src/app/offers/page.tsx
+Export default function Offers() {
+  Return (
+    <main>
+      <h1>Muro de Ofertas</h1>
+      <ul>
+        <li>Descarga una app y gana $1</li>
+        <li>Regístrate en un servicio y gana $2</li>
+      </ul>
+    </main>
+  );
+}
+== backend/src/app/surveys/page.tsx
+Export default function Surveys() {
+  Return (
+    <main>
+      <h1>Muro de Encuestas</h1>
+      <ul>
+        <li>Encuesta rápida: gana $0.50</li>
+        <li>Encuesta avanzada: gana $1.00</li>
+      </ul>
+    </main>
+  );
+}
+== android/app/src/main/AndroidManifest.xml
+<manifest xmlns:android=
+    Package=”com.bigmoney.app”>
+    <uses-permission android:name=”android.permission.INTERNET” />
+    <application
+        Android:allowBackup=”true”
+        Android:label=”Bigmoney”
+        Android:theme=”@style/Theme.AppCompat.Light.NoActionBar”>
+        <activity android:name=”.MainActivity”
+            Android:exported=”true”>
+            <intent-filter>
+                <action android:name=”android.intent.action.MAIN” />
+                <category android:name=”android.intent.category.LAUNCHER” />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+== android/app/src/main/java/com/bigmoney/app/MainActivity.java
+Package com.bigmoney.app;
+Import android.os.Bundle;
+Import android.webkit.WebSettings;
+Import android.webkit.WebView;
+Import android.webkit.WebViewClient;
+Import androidx.appcompat.app.AppCompatActivity;
+Public class MainActivity extends AppCompatActivity {
+    Private WebView webView;
+    @Override
+    Protected void onCreate(Bundle savedInstanceState) {
+        Super.onCreate(savedInstanceState);
+        webView = new WebView(this);
+        setContentView(webView);
+        WebSettings webSettings = webView.getSettings();
+        webSettings.setJavaScriptEnabled(true);
+        webView.setWebViewClient(new WebViewClient());
+        webView.loadUrl(); // URL local para pruebas
+    }
+    @Override
+    Public void onBackPressed() {
+        If (webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            Super.onBackPressed();
+        }
+    }
+}
+== backend/package.json
+{
+  “name”: “bigmoney-con-pagos”,
+  “version”: “2.1.0”,
+  “scripts”: {
+    “dev”: “next dev”,
+    “build”: “next build”,
+    “start”: “next start”,
+    “prisma:dev”: “prisma migrate dev –name init”
+  },
+  “dependencies”: {
+    “next”: “14.2.5”,
+    “react”: “18.3.1”,
+    “react-dom”: “18.3.1”,
+    “@prisma/client”: “5.17.0”,
+    “bcryptjs”: “2.4.3”,
+    “next-auth”: “5.0.0-beta.20”
+  },
+  “devDependencies”: {
+    “prisma”: “5.17.0”,
+    “typescript”: “5.4.5”
+  }
+}
+== backend/prisma/schema.prisma
+Generator client {
+  Provider = “prisma-client-js”
+}
+Datasource db {
+  Provider = “sqlite”
+  url      = env(“DATABASE_URL”)
+}
+Model User {
+  Id        String   @id @default(cuid())
+  Email     String   @unique
+  Name      String?
+  Password  String
+  Balance   Float    @default(0)
+  createdAt DateTime @default(now())
+  withdrawals Withdrawal[]
+}
+Model Offer {
+  Id          String   @id @default(cuid())
+  Title       String
+  Description String
+  Reward      Float
+  createdAt   DateTime @default(now())
+}
+Model Survey {
+  Id          String   @id @default(cuid())
+  Title       String
+  Description String
+  Reward      Float
+  createdAt   DateTime @default(now())
+}
+Model Withdrawal {
+  Id        String   @id @default(cuid())
+  userId    String
+  method    String
+  account   String
+  amount    Float
+  status    String   @default(“pendiente”)
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [userId], references: [id])
+}
+== backend/src/app/page.tsx
+Export default function Home() {
+  Return (
+    <main>
+      <h1>Bienvenido a Bigmoney</h1>
+      <p>Gana dinero extra completando ofertas y encuestas.</p>
+      <a href=”/auth/register”>Regístrate</a> | <a href=”/auth/login”>Inicia sesión</a>
+    </main>
+  );
+}
+== backend/src/app/auth/register/page.tsx
+Export default function Register() {
+  Return (
+    <main>
+      <h1>Registro</h1>
+      <form method=”post” action=”/api/register”>
+        <input type=”text” name=”name” placeholder=”Nombre” />
+        <input type=”email” name=”email” placeholder=”Correo” required />
+        <input type=”password” name=”password” placeholder=”Contraseña” required />
+        <button type=”submit”>Crear cuenta</button>
+      </form>
+    </main>
+  );
+}
+== backend/src/app/auth/login/page.tsx
+Export default function Login() {
+  Return (
+    <main>
+      <h1>Iniciar Sesión</h1>
+      <form method=”post” action=”/api/login”>
+        <input type=”email” name=”email” placeholder=”Correo” required />
+        <input type=”password” name=”password” placeholder=”Contraseña” required />
+        <button type=”submit”>Entrar</button>
+      </form>
+    </main>
+  );
+}
+== backend/src/app/dashboard/page.tsx
+Export default function Dashboard() {
+  Return (
+    <main>
+      <h1>Tu Panel</h1>
+      <p>Saldo disponible: $10.00</p>
+      <h2>Solicitar Retiro</h2>
+      <form method=”post” action=”/api/withdraw”>
+        <select name=”method”>
+          <option value=”paypal”>PayPal</option>
+          <option value=”stripe”>Stripe</option>
+        </select>
+        <input type=”text” name=”account” placeholder=”Correo de cuenta” required />
+        <input type=”number” name=”amount” placeholder=”Monto a retirar” required />
+        <button type=”submit”>Solicitar</button>
+      </form>
+      <h2>Historial de Retiros</h2>
+      <ul>
+        <li>$5.00 – PayPal – pendiente</li>
+      </ul>
+    </main>
+  );
+}
+== backend/src/app/admin/page.tsx
+Export default function Admin() {
+  Return (
+    <main>
+      <h1>Panel de Administración</h1>
+      <h2>Retiros pendientes</h2>
+      <ul>
+        <li>
+          Usuario:  - $5.00 – PayPal 
+          <button>Marcar como pagado</button>
+        </li>
+      </ul>
+    </main>
+  );
+}
+== backend/src/app/offers/page.tsx
+Export default function Offers() {
+  Return (
+    <main>
+      <h1>Muro de Ofertas</h1>
+      <ul>
+        <li>Descarga una app y gana $1</li>
+        <li>Regístrate en un servicio y gana $2</li>
+      </ul>
+    </main>
+  );
+}
+== backend/src/app/surveys/page.tsx
+Export default function Surveys() {
+  Return (
+    <main>
+      <h1>Muro de Encuestas</h1>
+      <ul>
+        <li>Encuesta rápida: gana $0.50</li>
+        <li>Encuesta avanzada: gana $1.00</li>
+      </ul>
+    </main>
+  );
+}
+== android/app/src/main/AndroidManifest.xml
+<manifest xmlns:android=
+    Package=”com.bigmoney.app”>
+    <uses-permission android:name=”android.permission.INTERNET” />
+    <application
+        Android:allowBackup=”true”
+        Android:label=”Bigmoney”
+        Android:theme=”@style/Theme.AppCompat.Light.NoActionBar”>
+        <activity android:name=”.MainActivity”
+            Android:exported=”true”>
+            <intent-filter>
+                <action android:name=”android.intent.action.MAIN” />
+                <category android:name=”android.intent.category.LAUNCHER” />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+== android/app/src/main/java/com/bigmoney/app/MainActivity.java
+Package com.bigmoney.app;
+Import android.os.Bundle;
+Import android.webkit.WebSettings;
+Import android.webkit.WebView;
+Import android.webkit.WebViewClient;
+Import androidx.appcompat.app.AppCompatActivity;
+Public class MainActivity extends AppCompatActivity {
+    Private WebView webView;
+    @Override
+    Protected void onCreate(Bundle savedInstanceState) {
+        Super.onCreate(savedInstanceState);
+        webView = new WebView(this);
+        setContentView(webView);
+        WebSettings webSettings = webView.getSettings();
+        webSettings.setJavaScriptEnabled(true);
+        webView.setWebViewClient(new WebViewClient());
+        webView.loadUrl(); // URL local para pruebas
+    }
+    @Override
+    Public void onBackPressed() {
+        If (webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            Super.onBackPressed();
+        }
+    }
+}
